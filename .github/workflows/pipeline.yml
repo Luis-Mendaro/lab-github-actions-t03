@@ -33,6 +33,23 @@ jobs:
           push: false
           tags: ${{ env.APP_NAME }}:${{ steps.tag.outputs.value }}
 
+      - name: Generar reporte de build
+        run: |
+          mkdir -p reports
+          echo "## Build Report" > reports/build-report.md
+          echo "- App: ${{ env.APP_NAME }}" >> reports/build-report.md
+          echo "- Tag: ${{ steps.tag.outputs.value }}" >> reports/build-report.md
+          echo "- SHA: ${{ github.sha }}" >> reports/build-report.md
+          echo "- Branch: ${{ github.ref_name }}" >> reports/build-report.md
+          echo "- Actor: ${{ github.actor }}" >> reports/build-report.md
+          echo "- Fecha: $(date -u)" >> reports/build-report.md
+
+      - name: Subir reporte
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-report-${{ steps.tag.outputs.value }}
+          path: reports/
+
   scan:
     name: Scan de seguridad (Trivy)
     runs-on: ubuntu-latest
@@ -52,6 +69,10 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.APP_NAME }}:${{ needs.build.outputs.image-tag }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
   test:
@@ -63,7 +84,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Análisis SonarCloud
+      - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,8 +113,9 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:${{ needs.build.outputs.image-tag }}
 
+  # ---------------- DEV ----------------
   deploy-dev:
-    name: Deploy → dev (test environment)
+    name: Deploy → dev
     runs-on: ubuntu-latest
     needs: push-artifact
     if: github.ref == 'refs/heads/develop'
