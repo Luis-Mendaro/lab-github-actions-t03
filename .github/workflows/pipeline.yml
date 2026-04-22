@@ -2,9 +2,9 @@ name: Pipeline DevOps
 
 on:
   push:
-    branches: [main]
+    branches: [develop, staging, main]
   pull_request:
-    branches: [main]
+    branches: [staging, main]
   workflow_dispatch:
 
 env:
@@ -115,3 +115,14 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:${{ needs.build.outputs.image-tag }}
+            
+  deploy-dev:
+    name: Deploy → dev (test environment)
+    runs-on: ubuntu-latest
+    needs: push-artifact
+    if: github.ref == 'refs/heads/develop'
+    environment: dev
+
+    steps:
+      - name: Test environment dev
+        run: echo "Deploy simulado a DEV"
