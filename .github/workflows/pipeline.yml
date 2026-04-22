@@ -63,7 +63,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: SonarCloud Scan
+      - name: Análisis SonarCloud
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,9 +92,8 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.APP_NAME }}:${{ needs.build.outputs.image-tag }}
 
-  # ---------------- DEV ----------------
   deploy-dev:
-    name: Deploy → dev
+    name: Deploy → dev (test environment)
     runs-on: ubuntu-latest
     needs: push-artifact
     if: github.ref == 'refs/heads/develop'
