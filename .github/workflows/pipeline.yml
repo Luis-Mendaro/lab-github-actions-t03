@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image-tag: ${{ steps.tag.outputs.value }}
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -54,6 +55,7 @@ jobs:
     name: Scan de seguridad (Trivy)
     runs-on: ubuntu-latest
     needs: build
+
     steps:
       - uses: actions/checkout@v4
 
@@ -79,6 +81,7 @@ jobs:
     name: Quality Gate (SonarCloud)
     runs-on: ubuntu-latest
     needs: scan
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -95,6 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, test]
     if: github.event_name != 'pull_request'
+
     steps:
       - uses: actions/checkout@v4
 
@@ -120,9 +124,20 @@ jobs:
     needs: push-artifact
     if: github.ref == 'refs/heads/develop'
     environment: dev
+
     steps:
-      - name: Simulación deploy dev
-        run: echo "Deploy simulado a DEV"
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Deploy a S3 (dev)
+        run: aws s3 sync ./ s3://${{ secrets.S3_BUCKET }} --delete
 
   # ---------------- STAGING ----------------
   deploy-staging:
@@ -131,9 +146,20 @@ jobs:
     needs: push-artifact
     if: github.ref == 'refs/heads/staging'
     environment: staging
+
     steps:
-      - name: Simulación deploy staging
-        run: echo "Deploy simulado a STAGING"
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Deploy a S3 (staging)
+        run: aws s3 sync ./ s3://${{ secrets.S3_BUCKET }} --delete
 
   # ---------------- PRODUCTION ----------------
   deploy-production:
@@ -142,6 +168,17 @@ jobs:
     needs: push-artifact
     if: github.ref == 'refs/heads/main'
     environment: production
+
     steps:
-      - name: Simulación deploy production
-        run: echo "Deploy simulado a PRODUCTION"
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Deploy a S3 (production)
+        run: aws s3 sync ./ s3://${{ secrets.S3_BUCKET }} --delete
